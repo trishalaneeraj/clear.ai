@@ -20,18 +20,22 @@
         <!--app:layout_constraintVertical_bias="0.711" />-->
 
     <Button
-        android:text="Take a picture"
+        android:id="@+id/takePictureButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/takePictureButton"
-        android:onClick="takePicture"/>
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="12dp"
+        android:onClick="takePicture"
+        android:text="Is it Mint Chocolate?" />
 
     <ImageView
         android:id="@+id/previewImage"
         android:layout_width="298dp"
         android:layout_height="283dp"
-        android:layout_below="@id/takePictureButton"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
+        android:layout_marginTop="25dp"
         tools:layout_editor_absoluteX="43dp"
         tools:layout_editor_absoluteY="93dp" />
 
@@ -39,7 +43,9 @@
         android:id="@+id/resultsText"
         android:layout_width="189dp"
         android:layout_height="79dp"
-        android:layout_below="@id/previewImage"
+        android:layout_below="@+id/previewImage"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="31dp"
         tools:layout_editor_absoluteX="98dp"
         tools:layout_editor_absoluteY="403dp" />
 

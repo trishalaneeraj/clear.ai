@@ -78,21 +78,11 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, MY_REQUEST_CODE);
     }
 
-
-//    public void drawRect(ImageView g){
-//
-//        Paint paint = new Paint();
-//        paint.setColor(Color.GREEN);
-//        g.drawRect(left, top, right, bottom, paint);
-//        g.drawText(name, x, y, paint);
-//
-//    }
-
     // TODO - How do we link different buttons in this thing?
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
 
-        final String findThisString = "WE";
+        final String findThisString = "mint";
 
         if (requestCode == MY_REQUEST_CODE && resultCode == RESULT_OK) {
 
@@ -101,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
             // Set the bitmap as the source of the ImageView
             ((ImageView) findViewById(R.id.previewImage)).setImageBitmap(picture);
 
+//            InputStream inputStream = getResources().openRawResource(R.raw.cheezit);
+//            byte[] photoData = IOUtils.toByteArray(inputStream);
+//
             // More code goes here
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             picture.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
@@ -133,7 +126,8 @@ public class MainActivity extends AppCompatActivity {
                                 batchResponse.getResponses().get(0);
 
                         if (annotateImageResponse.size() == 0) {
-                            runOnUIThing("Try again - The Vision system gave no response");
+                            runOnUIThingImageNO();
+                            runOnUIThing("Try again - GCP could not find the text you are searching for - no response");
                         } else {
 
                             // We need to skip the first one as
@@ -147,9 +141,11 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             if (vertices == null) {
+                                runOnUIThingImageNO();
                                 runOnUIThing("Try again - GCP could not find the text you are searching for");
                             } else {
                                 runOnUIThing(batchResponse.getResponses().get(0).getFullTextAnnotation().getText());
+                                runOnUIThingImageYES();
                             }
                         }
                     } catch (Exception e) {
@@ -166,6 +162,24 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 Toast.makeText(getApplicationContext(),
                         message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void runOnUIThingImageYES() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ((ImageView) findViewById(R.id.previewImage)).setImageResource(R.raw.yes);
+                }
+            });
+    }
+
+    private void runOnUIThingImageNO() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ((ImageView) findViewById(R.id.previewImage)).setImageResource(R.raw.no);
             }
         });
     }
