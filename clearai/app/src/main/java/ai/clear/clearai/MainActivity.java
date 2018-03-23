@@ -14,6 +14,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.api.services.vision.v1.model.Vertex;
+import com.google.common.collect.Iterables;
+
 import com.github.kittinunf.fuel.Fuel;
 import com.github.kittinunf.fuel.core.FuelError;
 import com.github.kittinunf.fuel.core.Handler;
@@ -25,8 +28,10 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.vision.v1.Vision;
 import com.google.api.services.vision.v1.VisionRequestInitializer;
 import com.google.api.services.vision.v1.model.AnnotateImageRequest;
+import com.google.api.services.vision.v1.model.AnnotateImageResponse;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesRequest;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
+import com.google.api.services.vision.v1.model.EntityAnnotation;
 import com.google.api.services.vision.v1.model.Feature;
 import com.google.api.services.vision.v1.model.Image;
 import com.google.api.services.vision.v1.model.TextAnnotation;
@@ -39,7 +44,9 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.security.spec.ECField;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import kotlin.Pair;
@@ -72,30 +79,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void drawRect(ImageView g){
-
-        Paint paint = new Paint();
-        paint.setColor(Color.GREEN);
-        g.drawRect(left, top, right, bottom, paint);
-        g.drawText(name, x, y, paint);
-
-    }
+//    public void drawRect(ImageView g){
+//
+//        Paint paint = new Paint();
+//        paint.setColor(Color.GREEN);
+//        g.drawRect(left, top, right, bottom, paint);
+//        g.drawText(name, x, y, paint);
+//
+//    }
 
     // TODO - How do we link different buttons in this thing?
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, final Intent data){
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
+
+        final String findThisString = "WE";
+
         if (requestCode == MY_REQUEST_CODE && resultCode == RESULT_OK) {
 
-            Bitmap picture = (Bitmap)data.getExtras().get("data");
+            Bitmap picture = (Bitmap) data.getExtras().get("data");
 
             // Set the bitmap as the source of the ImageView
-            ((ImageView)findViewById(R.id.previewImage)).setImageBitmap(picture);
+            ((ImageView) findViewById(R.id.previewImage)).setImageBitmap(picture);
 
             // More code goes here
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-            picture.compress(Bitmap.CompressFormat.JPEG, 90, byteStream);
+            picture.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
             String base64Data = Base64.encodeToString(byteStream.toByteArray(), Base64.URL_SAFE);
-
             Image inputImage = new Image();
             inputImage.setContent(base64Data);
 
@@ -120,24 +129,45 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         batchResponse = vision.images().annotate(batchRequest).execute();
 
-                        final TextAnnotation text = batchResponse.getResponses()
-                                .get(0).getFullTextAnnotation();
+                        final AnnotateImageResponse annotateImageResponse =
+                                batchResponse.getResponses().get(0);
 
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(getApplicationContext(),
-                                        text.getText(), Toast.LENGTH_LONG).show();
+                        if (annotateImageResponse.size() == 0) {
+                            runOnUIThing("Try again - The Vision system gave no response");
+                        } else {
+
+                            // We need to skip the first one as
+                            ArrayList<Vertex> vertices = null;
+                            for (EntityAnnotation entityAnnotation : Iterables.skip(
+                                    annotateImageResponse.getTextAnnotations(), 1)) {
+                                entityAnnotation.getBoundingPoly();
+                                if (findThisString.equals(entityAnnotation.getDescription())) {
+                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
+                                    break;
+                                }
                             }
-                        });
+                            if (vertices == null) {
+                                runOnUIThing("Try again - GCP could not find the text you are searching for");
+                            } else {
+                                runOnUIThing(batchResponse.getResponses().get(0).getFullTextAnnotation().getText());
+                            }
+                        }
                     } catch (Exception e) {
                         Log.e("Where's your god now?", "Annotation call failed", e);
                     }
-
-                    // More code here
                 }
             });
         }
+    }
+
+    private void runOnUIThing(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(),
+                        message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
 //    @Override
