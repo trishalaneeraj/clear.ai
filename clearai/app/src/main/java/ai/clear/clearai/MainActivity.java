@@ -1,9 +1,11 @@
 package ai.clear.clearai;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
@@ -43,6 +45,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.security.spec.ECField;
@@ -73,8 +76,15 @@ public class MainActivity extends AppCompatActivity {
 
     public final static int MY_REQUEST_CODE = 1;
 
+    public Uri imageUri = null;
+
     public void takePicture(View view) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.TITLE, "New Picture");
+        values.put(MediaStore.Images.Media.DESCRIPTION, "New Picture");
+        imageUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         startActivityForResult(intent, MY_REQUEST_CODE);
     }
 
@@ -83,18 +93,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
 
         final String findThisString = "mint";
-
         if (requestCode == MY_REQUEST_CODE && resultCode == RESULT_OK) {
 
-            Bitmap picture = (Bitmap) data.getExtras().get("data");
+            Bitmap picture = null;
+            try {
+                picture = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            picture = Bitmap.createScaledBitmap(picture, 768, 1024, true);
 
             // Set the bitmap as the source of the ImageView
             ((ImageView) findViewById(R.id.previewImage)).setImageBitmap(picture);
 
-//            InputStream inputStream = getResources().openRawResource(R.raw.cheezit);
-//            byte[] photoData = IOUtils.toByteArray(inputStream);
-//
-            // More code goes here
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             picture.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
             String base64Data = Base64.encodeToString(byteStream.toByteArray(), Base64.URL_SAFE);
