@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     public final static int MY_REQUEST_CODE = 1;
 
+    // One global imageUri
     public Uri imageUri = null;
 
     public void takePicture(View view) {
@@ -92,8 +94,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
 
-        final String findThisString = "mint";
+
         if (requestCode == MY_REQUEST_CODE && resultCode == RESULT_OK) {
+
+            EditText userEnteredText = (EditText)findViewById(R.id.name);
+            final String findThisString = userEnteredText.getText().toString().toLowerCase();
 
             Bitmap picture = null;
             try {
