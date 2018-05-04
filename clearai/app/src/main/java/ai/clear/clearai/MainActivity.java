@@ -7,12 +7,14 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.api.services.vision.v1.model.Vertex;
@@ -48,16 +50,21 @@ import static android.graphics.Color.RED;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final boolean faked_for_video = false;
+
     protected Vision vision;
 
     // One global imageUri
     public Uri imageUri = null;
 
     public final static int IMG_REQUEST_CODE = 1;
-    public final static int REC_REQUEST_CODE = 2;
+    public static final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     public Bitmap picture = null;
 
     private int system_state = 0;
+
+    String findThisString = "mint";
+    String findThisString_second = "salted";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         vision = visionBuilder.build();
     }
 
-    public void takePicture(View view) {
+    public void takePictureCall() {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "New Picture");
         values.put(MediaStore.Images.Media.DESCRIPTION, "New Picture");
@@ -85,35 +92,52 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("android.intent.extra.quickCapture",true);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         startActivityForResult(intent, IMG_REQUEST_CODE);
+    }
 
-        // Ready to record
-        findViewById(R.id.recordButton).setBackgroundColor(Color.parseColor("#ff669900"));
-        system_state = 0;
+    public void takePicture(View view) {
+        takePictureCall();
     }
 
     public void record(View view) {
-        Button tiny = findViewById(R.id.recordButton);
-        if (system_state == 0) {
-            // Recording
-            tiny.setBackgroundColor(Color.parseColor("#ff99cc00"));
-            system_state = 1;
-        }
-        else {
-            // Ready to record
-            tiny.setBackgroundColor(Color.parseColor("#ff669900"));
-            system_state = 0;
-        }
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,"Which Product?");
+        startActivityForResult(intent, VOICE_RECOGNITION_REQUEST_CODE);
 
+//        Button tiny = findViewById(R.id.recordButton);
+//        if (system_state == 0) {
+//            // Recording
+//            tiny.setBackgroundColor(Color.parseColor("#ff99cc00"));
+//            system_state = 1;
+//        }
+//        else {
+//            // Ready to record
+//            tiny.setBackgroundColor(Color.parseColor("#ff669900"));
+//            system_state = 0;
+//        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
 
+        if (requestCode == VOICE_RECOGNITION_REQUEST_CODE && resultCode == RESULT_OK) {
+
+            if (data != null) {
+                ArrayList matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                Log.i((String) matches.get(0), (String) matches.get(0) + " " + (String) matches.get(1));
+                if (matches.size() > 1) {
+                    findThisString = ((String) matches.get(0)).toLowerCase();
+                }
+
+                if (matches.size() > 2) {
+                    findThisString_second = ((String) matches.get(1)).toLowerCase();
+                }
+            }
+            takePictureCall();
+        }
 
         if (requestCode == IMG_REQUEST_CODE && resultCode == RESULT_OK) {
-
-            // Get the Text
-            final String findThisString = "mint";
 
             try {
                 picture = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
@@ -121,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-            picture = Bitmap.createScaledBitmap(picture, 216, 271, true);
+            picture = Bitmap.createScaledBitmap(picture, 200, 275, true);
 
             // Set the bitmap as the source of the ImageView
             ((ImageView) findViewById(R.id.previewImage)).setImageBitmap(picture);
@@ -151,48 +175,45 @@ public class MainActivity extends AppCompatActivity {
                     // Convert photo to byte array
                     BatchAnnotateImagesResponse batchResponse = null;
                     try {
-                        batchResponse = vision.images().annotate(batchRequest).execute();
 
-                        final AnnotateImageResponse annotateImageResponse =
-                                batchResponse.getResponses().get(0);
-
-                        if (annotateImageResponse.size() == 0) {
-                            runOnUIThingImageNO();
-                            runOnUIThing("Please Try again - The AI could not find the text you are searching for.");
-                        } else {
-
-                            // We need to skip the first one as
-                            ArrayList<Vertex> vertices = null;
-                            for (EntityAnnotation entityAnnotation : Iterables.skip(
-                                    annotateImageResponse.getTextAnnotations(), 1)) {
-                                entityAnnotation.getBoundingPoly();
-                                if ("mint".equals(entityAnnotation.getDescription().toLowerCase())) {
-                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
-                                    break;
-                                }
-                                if ("dandruff".equals(entityAnnotation.getDescription().toLowerCase())) {
-                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
-                                    break;
-                                }
-                                if ("organic".equals(entityAnnotation.getDescription().toLowerCase())) {
-                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
-                                    break;
-                                }
-                                if ("salted".equals(entityAnnotation.getDescription().toLowerCase())) {
-                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
-                                    break;
-                                }
-                                if ("artificial".equals(entityAnnotation.getDescription().toLowerCase())) {
-                                    vertices = (ArrayList<Vertex>) entityAnnotation.getBoundingPoly().getVertices();
-                                    break;
-                                }
-                            }
-                            if (vertices == null) {
-                                runOnUIThingImageNO();
-                                runOnUIThing("Please Try again - The AI could not find the text you are searching for.");
-                            } else {
-                                runOnUIThing(batchResponse.getResponses().get(0).getFullTextAnnotation().getText());
+                        if (faked_for_video) {
+                            Thread.sleep(2000);
+                            if (findThisString.toLowerCase().equals("hi")) {
                                 runOnUIThingImageYES();
+                            } else {
+                                runOnUIThingImageNO();
+                                runOnUIThing("The AI could not find the text you are searching for.");
+                            }
+                        }
+                        else {
+                            batchResponse = vision.images().annotate(batchRequest).execute();
+                            final AnnotateImageResponse annotateImageResponse =
+                                    batchResponse.getResponses().get(0);
+
+                            if (annotateImageResponse.size() == 0) {
+                                runOnUIThingImageNO();
+                                runOnUIThing("The AI could not find the text you are searching for.");
+                            } else {
+
+                                // We need to skip the first one as
+                                String found_text = null;
+
+                                String text_annotation = annotateImageResponse.getFullTextAnnotation().getText().toLowerCase();
+                                text_annotation = text_annotation.replace("\n", " ");
+                                if (text_annotation.contains(findThisString)) {
+                                    found_text = annotateImageResponse.getFullTextAnnotation().getText();
+                                }
+                                if (text_annotation.contains(findThisString_second)) {
+                                    found_text = annotateImageResponse.getFullTextAnnotation().getText();
+                                }
+
+                                if (found_text == null) {
+                                    runOnUIThingImageNO();
+                                    runOnUIThing("The AI could not find the text you are searching for.");
+                                } else {
+                                    runOnUIThing(batchResponse.getResponses().get(0).getFullTextAnnotation().getText());
+                                    runOnUIThingImageYES();
+                                }
                             }
                         }
                     } catch (Exception e) {
