@@ -128,10 +128,14 @@ public class MainActivity extends AppCompatActivity {
                 Log.i((String) matches.get(0), (String) matches.get(0) + " " + (String) matches.get(1));
                 if (matches.size() > 1) {
                     findThisString = ((String) matches.get(0)).toLowerCase();
+                } else {
+                    findThisString = "scaf weij fnjkcnwdnc uv";
                 }
 
                 if (matches.size() > 2) {
                     findThisString_second = ((String) matches.get(1)).toLowerCase();
+                } else {
+                    findThisString_second = "scaf weij fnjkcnw dncuv";
                 }
             }
             takePictureCall();
